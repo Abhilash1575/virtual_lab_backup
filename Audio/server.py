@@ -1,8 +1,11 @@
 import json
 import asyncio
 import fractions
+import subprocess
 import os
-import sys
+
+# Set ALSA config path to system location (not venv)
+os.environ['ALSA_CONFIG_PATH'] = '/usr/share/alsa/alsa.conf'
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
@@ -10,9 +13,33 @@ from aiortc.contrib.media import MediaPlayer
 from av import AudioFrame
 import time
 
-# Add Audio directory to path for imports
+# Get the directory where this script is located
 AUDIO_DIR = os.path.dirname(os.path.abspath(__file__))
-print(f"Audio server starting from: {AUDIO_DIR}")
+
+def get_available_audio_devices():
+    """Get list of available ALSA audio devices"""
+    devices = []
+    try:
+        # Try to get list of audio devices using aplay
+        result = subprocess.run(["aplay", "-l"], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'card' in line and 'device' in line:
+                    devices.append(line.strip())
+    except Exception as e:
+        print(f"Error getting audio devices: {e}")
+    
+    try:
+        # Also try arecord -l
+        result = subprocess.run(["arecord", "-l"], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'card' in line and 'device' in line:
+                    devices.append(f"MIC: {line.strip()}")
+    except Exception as e:
+        print(f"Error getting recording devices: {e}")
+    
+    return devices
 
 class SilenceAudioTrack(MediaStreamTrack):
     kind = "audio"
@@ -75,28 +102,24 @@ async def get_audio_track(pc):
         try:
             import subprocess
 
-            # Pipeline: arecord (stereo) -> ffmpeg (downmix to mono) -> MediaPlayer
-            # 1. arecord: Capture Stereo (hw:2,0 requires 2 channels)
-            cmd_arecord = ["arecord", "-D", "hw:2,0", "-c", "2", "-r", "48000", "-f", "S16_LE", "-t", "raw", "--buffer-time=5000"]
-            proc_arecord = subprocess.Popen(cmd_arecord, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-
-            # 2. ffmpeg: Downmix to Mono with low latency flags
+            # Use ffmpeg directly with ALSA input - bypasses broken Python ALSA
+            # ffmpeg captures from hw:2,0, resamples, and outputs to stdout
             cmd_ffmpeg = [
                 "ffmpeg",
-                "-f", "s16le", "-ar", "48000", "-ac", "2", "-i", "pipe:0",
-                "-ac", "1", "-f", "s16le",
-                "-fflags", "nobuffer", "-flags", "low_delay", "-fflags", "discardcorrupt",
-                "-probesize", "32", "-analyzeduration", "0",
+                "-f", "alsa", "-i", "hw:2,0",
+                "-ar", "48000", "-ac", "1", "-f", "s16le",
+                "-fflags", "nobuffer", "-flags", "low_delay",
+                "-bufsize", "1000",
                 "pipe:1"
             ]
-            proc_ffmpeg = subprocess.Popen(cmd_ffmpeg, stdin=proc_arecord.stdout, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+            proc_ffmpeg = subprocess.Popen(
+                cmd_ffmpeg, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.DEVNULL
+            )
 
-            # Store processes for cleanup
-            pc.proc_arecord = proc_arecord
+            # Store process for cleanup
             pc.proc_ffmpeg = proc_ffmpeg
-
-            # Allow proc_arecord to receive a SIGPIPE if proc_ffmpeg exits
-            proc_arecord.stdout.close()
 
             # Start monitoring task for subprocess health
             asyncio.create_task(monitor_subprocesses(pc))
@@ -112,7 +135,8 @@ async def get_audio_track(pc):
                 }
             )
             return player.audio
-        except:
+        except Exception as e:
+            print(f"Subprocess method failed: {e}")
             return None
 
     # Use threading to try audio sources concurrently
@@ -154,27 +178,7 @@ async def monitor_subprocesses(pc):
             return
 
 async def index(request):
-    client_path = os.path.join(AUDIO_DIR, "client.html")
-    print(f"Serving client.html from: {client_path}")
-    return web.FileResponse(client_path)
-
-async def status(request):
-    """Return audio server status"""
-    audio_devices = []
-    try:
-        import subprocess
-        result = subprocess.run(["arecord", "-l"], capture_output=True, text=True)
-        audio_devices.append(result.stdout)
-    except:
-        audio_devices.append("Could not list audio devices")
-    
-    return web.json_response({
-        "status": "running",
-        "audio_dir": AUDIO_DIR,
-        "active_connections": len(pcs),
-        "audio_devices": audio_devices,
-        "port": 9000
-    })
+    return web.FileResponse(os.path.join(AUDIO_DIR, "client.html"))
 
 async def offer(request):
     # Handle preflight OPTIONS request
@@ -232,6 +236,14 @@ async def cleanup(app):
             pc.proc_ffmpeg.wait()
         await pc.close()
 
+async def status(request):
+    """Check if audio server is running"""
+    return web.json_response({
+        "status": "running",
+        "port": 9000,
+        "active_connections": len(pcs)
+    })
+
 app = web.Application()
 app.on_shutdown.append(cleanup)
 app.router.add_get("/", index)
@@ -240,6 +252,25 @@ app.router.add_post("/offer", offer)
 app.router.add_options("/offer", offer)  # Handle preflight OPTIONS
 
 async def run_audio_server():
+    print("=" * 50)
+    print("Audio Stream Server starting on port 9000")
+    print("=" * 50)
+    
+    # Print available audio devices
+    print("\nAvailable audio devices:")
+    devices = get_available_audio_devices()
+    if devices:
+        for d in devices:
+            print(f"  - {d}")
+    else:
+        print("  (No devices found)")
+    
+    print("\nTrying audio sources in order:")
+    print("  1. ALSA default")
+    print("  2. ALSA hw:2,0")
+    print("  3. Subprocess (arecord -> ffmpeg)")
+    print("=" * 50)
+    
     await web._run_app(app, host="0.0.0.0", port=9000)
 
 if __name__ == "__main__":

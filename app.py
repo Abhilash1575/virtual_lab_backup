@@ -25,10 +25,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(DEFAULT_FW_DIR, exist_ok=True)
 os.makedirs(SOP_DIR, exist_ok=True)
 
-import sys
-sys.path.append(os.path.join(BASE_DIR, 'Audio'))
-import server as audio_server
-
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = 'devkey'
 socketio = SocketIO(app, async_mode='eventlet')
@@ -386,24 +382,35 @@ def send_sensor_data_to_clients(data):
         print("[ERROR] Failed to emit sensor_data:", e)
 
 
-def run_audio_server():
-    """Run the audio server in a separate thread with its own event loop"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(audio_server.run_audio_server())
-    finally:
-        loop.close()
-
 # ---------- MAIN ----------
 if __name__ == '__main__':
-    print("Starting Embedded Virtual Lab server on 0.0.0.0:5000")
-    # NOTE: Audio server (port 9000) should be started via systemd service:
-    # sudo systemctl enable audio_stream.service
-    # sudo systemctl start audio_stream.service
-    # Do NOT start audio server here to avoid port conflict
-    # audio_thread = threading.Thread(target=run_audio_server, daemon=True)
-    # audio_thread.start()
+    import socket
+    def check_port(port, name):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        if result == 0:
+            print(f"✓ {name} is running on port {port}")
+            return True
+        else:
+            print(f"✗ {name} is NOT running on port {port}")
+            return False
+    
+    print("========================================")
+    print("Virtual Lab Server Starting...")
+    print("========================================")
+    
+    audio_running = check_port(9000, "Audio server")
+    if not audio_running:
+        print("\n⚠️  Audio service not detected!")
+        print("   To enable audio, run:")
+        print("   sudo systemctl enable audio_stream.service")
+        print("   sudo systemctl start audio_stream.service")
+    
+    print("\nStarting Flask server on port 5000...")
+    print("========================================")
+    
     try:
         socketio.run(app, host='0.0.0.0', port=5000)
     finally:

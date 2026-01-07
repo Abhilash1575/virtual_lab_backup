@@ -77,6 +77,11 @@ sudo systemctl enable vlabiisc.service audio_stream.service mjpg-streamer.servic
 echo -e "${YELLOW}Step 7: Configuring permissions...${NC}"
 sudo usermod -a -G dialout $USER
 
+echo -e "${YELLOW}Step 8: Fixing ALSA config for venv...${NC}"
+# Create ALSA config directory for virtual environment
+sudo mkdir -p /tmp/vendor/share/alsa
+sudo cp -r /usr/share/alsa/* /tmp/vendor/share/alsa/
+
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "${GREEN}========================================"
