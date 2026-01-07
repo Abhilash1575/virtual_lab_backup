@@ -398,12 +398,12 @@ def run_audio_server():
 # ---------- MAIN ----------
 if __name__ == '__main__':
     print("Starting Embedded Virtual Lab server on 0.0.0.0:5000")
-    # Start the audio server in a separate thread
-    audio_thread = threading.Thread(target=run_audio_server, daemon=True)
-    audio_thread.start()
-    print("Audio server started on port 9000")
-    # Don't start mock generator by default - only when serial disconnects
-    # data_generator_thread = eventlet.spawn(mock_data_generator)
+    # NOTE: Audio server (port 9000) should be started via systemd service:
+    # sudo systemctl enable audio_stream.service
+    # sudo systemctl start audio_stream.service
+    # Do NOT start audio server here to avoid port conflict
+    # audio_thread = threading.Thread(target=run_audio_server, daemon=True)
+    # audio_thread.start()
     try:
         socketio.run(app, host='0.0.0.0', port=5000)
     finally:
