@@ -16,6 +16,9 @@
             document.getElementById("startBtn").disabled = true;
             document.getElementById("stopBtn").disabled = false;
 
+            // Get server IP from current window location
+            const serverUrl = window.location.hostname;
+            
             pc = new RTCPeerConnection();
 
             pc.ontrack = (event) => {
@@ -27,7 +30,8 @@
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
-            const response = await fetch("/offer", {
+            // Request to audio server on port 9000
+            const response = await fetch(`http://${serverUrl}:9000/offer`, {
                 method: "POST",
                 body: JSON.stringify({
                     sdp: pc.localDescription.sdp,

@@ -1,12 +1,18 @@
 import json
 import asyncio
 import fractions
+import os
+import sys
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
 from aiortc.contrib.media import MediaPlayer
 from av import AudioFrame
 import time
+
+# Add Audio directory to path for imports
+AUDIO_DIR = os.path.dirname(os.path.abspath(__file__))
+print(f"Audio server starting from: {AUDIO_DIR}")
 
 class SilenceAudioTrack(MediaStreamTrack):
     kind = "audio"
@@ -148,7 +154,27 @@ async def monitor_subprocesses(pc):
             return
 
 async def index(request):
-    return web.FileResponse("client.html")
+    client_path = os.path.join(AUDIO_DIR, "client.html")
+    print(f"Serving client.html from: {client_path}")
+    return web.FileResponse(client_path)
+
+async def status(request):
+    """Return audio server status"""
+    audio_devices = []
+    try:
+        import subprocess
+        result = subprocess.run(["arecord", "-l"], capture_output=True, text=True)
+        audio_devices.append(result.stdout)
+    except:
+        audio_devices.append("Could not list audio devices")
+    
+    return web.json_response({
+        "status": "running",
+        "audio_dir": AUDIO_DIR,
+        "active_connections": len(pcs),
+        "audio_devices": audio_devices,
+        "port": 9000
+    })
 
 async def offer(request):
     # Handle preflight OPTIONS request
@@ -209,6 +235,7 @@ async def cleanup(app):
 app = web.Application()
 app.on_shutdown.append(cleanup)
 app.router.add_get("/", index)
+app.router.add_get("/status", status)
 app.router.add_post("/offer", offer)
 app.router.add_options("/offer", offer)  # Handle preflight OPTIONS
 
