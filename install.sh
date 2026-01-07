@@ -42,6 +42,8 @@ fi
 source venv/bin/activate
 
 echo -e "${YELLOW}Step 4: Installing Python dependencies...${NC}"
+# Fix pip if it's broken in venv
+python3 -m ensurepip --upgrade || python3 -m pip install --upgrade pip
 pip install --upgrade pip
 pip install -r requirements.txt
 
