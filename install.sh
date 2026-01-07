@@ -31,9 +31,8 @@ sudo apt install -y \
     avrdude \
     openocd \
     esptool \
+    alsa-utils \
     libportaudio2 \
-    arecord \
-    aplay \
     ffmpeg
 
 echo -e "${YELLOW}Step 3: Setting up Python virtual environment...${NC}"
