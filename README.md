@@ -29,41 +29,55 @@ For non-Debian systems, use **Manual Installation** below.
 - **WebRTC Audio Streaming**: Live audio from laboratory environment
 - **Session Management**: Time-limited access sessions with secure keys
 
-## Installation on Fresh Raspberry Pi
+## Installation
 
-### Option 1: Automated Installation (Recommended)
+### Automated Multi-OS Installation
 
-1. Clone the repository:
+The installer automatically detects your Linux distribution and installs the correct packages:
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/virtual_lab.git
+git clone https://github.com/Abhilash1575/virtual_lab.git
 cd virtual_lab
-```
-
-2. Run the installation script:
-```bash
+cd install
 chmod +x install.sh
 ./install.sh
 ```
 
-3. Reboot for serial port permissions:
-```bash
-sudo reboot
-```
+**Supported Operating Systems:**
 
-4. Start the service:
-```bash
-sudo systemctl start virtual_lab
-```
+| Distribution | Package Manager | Installer Script |
+|--------------|-----------------|------------------|
+| Raspberry Pi OS | apt | install-apt.sh |
+| Debian | apt | install-apt.sh |
+| Ubuntu | apt | install-apt.sh |
+| Linux Mint | apt | install-apt.sh |
+| Pop!_OS | apt | install-apt.sh |
+| Fedora | dnf | install-dnf.sh |
+| RHEL/CentOS | dnf | install-dnf.sh |
+| Rocky Linux | dnf | install-dnf.sh |
+| AlmaLinux | dnf | install-dnf.sh |
+| Alpine Linux | apk | install-apk.sh |
+| Arch Linux | pacman | install-pacman.sh |
+| Manjaro | pacman | install-pacman.sh |
 
-### Option 2: Manual Installation
+### Manual Installation
+
+For any Linux distribution:
 
 ```bash
-# Install system dependencies
+# Install system dependencies (adjust package manager for your distro)
+# Debian/Ubuntu:
 sudo apt update
-sudo apt install -y python3-pip python3-venv python3-dev git avrdude openocd esptool libportaudio2 arecord aplay ffmpeg
+sudo apt install -y python3-pip python3-venv python3-dev git avrdude openocd esptool libportaudio2 ffmpeg ustreamer
+
+# Fedora:
+sudo dnf install -y python3-pip python3-venv python3-devel git avrdude openocd esptool-python portaudio-devel ffmpeg
+
+# Arch:
+sudo pacman -S --noconfirm python-pip python-virtualenv python base-devel git avrdude openocd esptool portaudio ffmpeg
 
 # Clone and setup
-git clone https://github.com/YOUR_USERNAME/virtual_lab.git
+git clone https://github.com/Abhilash1575/virtual_lab.git
 cd virtual_lab
 
 # Create virtual environment
@@ -77,15 +91,17 @@ pip install -r requirements.txt
 # Create directories
 mkdir -p uploads default_fw static/sop
 
-# Setup systemd service
-sudo cp virtual_lab.service /etc/systemd/system/
-sudo chmod 644 /etc/systemd/system/virtual_lab.service
+# Setup systemd service (if using systemd)
+sudo cp services/*.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable virtual_lab.service
-sudo systemctl start virtual_lab
+sudo systemctl enable vlabiisc.service audio_stream.service mjpg-streamer.service
+sudo systemctl start vlabiisc
 
-# Add user to dialout group (for serial port access)
+# Add user to serial group
+# Debian/Ubuntu/Pi OS:
 sudo usermod -a -G dialout $USER
+# Arch Linux:
+sudo usermod -a -G uucp $USER
 ```
 
 ## Project Structure
