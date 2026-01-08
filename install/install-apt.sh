@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Virtual Embedded Lab - APT-based Installer
+# Compatible with Raspberry Pi OS & Ubuntu (22.04+)
 # For: Debian, Raspberry Pi OS, Ubuntu, Linux Mint, Pop!_OS, etc.
 
 set -e
@@ -41,12 +42,23 @@ echo -e "${YELLOW}Step 3: Setting up Python virtual environment...${NC}"
 if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
+
+# Activate venv
 source venv/bin/activate
 
 echo -e "${YELLOW}Step 4: Installing Python dependencies...${NC}"
-python3 -m ensurepip --upgrade || python3 -m pip install --upgrade pip
-pip install --upgrade pip
-pip install -r requirements.txt
+# Detect if Ubuntu (PEP 668) or RPi OS
+OS_NAME=$(lsb_release -si)
+if [[ "$OS_NAME" == "Ubuntu" ]]; then
+    echo "Detected Ubuntu: Using virtual environment for pip (PEP 668 safe)"
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+else
+    echo "Detected non-Ubuntu OS: Using system Python (RPi OS compatible)"
+    python3 -m ensurepip --upgrade || python3 -m pip install --upgrade pip
+    pip install --upgrade pip
+    pip install -r requirements.txt
+fi
 
 echo -e "${YELLOW}Step 5: Creating required directories...${NC}"
 mkdir -p uploads
@@ -54,7 +66,6 @@ mkdir -p default_fw
 mkdir -p static/sop
 
 echo -e "${YELLOW}Step 6: Setting up systemd services...${NC}"
-
 # Copy service files from services folder
 if [ -d "services" ]; then
     for service_file in services/*.service; do
