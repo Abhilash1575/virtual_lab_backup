@@ -1,11 +1,13 @@
+sudo tee /etc/systemd/system/mjpg-streamer.service > /dev/null <<EOF
 [Unit]
 Description=MJPG Streamer
 After=network.target
 
 [Service]
+User=$REAL_USER
 ExecStart=/usr/bin/ustreamer --device=/dev/video0 --format=mjpeg --resolution=1280x720 --port=8080 --persistent --host=0.0.0.0
 Restart=always
-User=pi
 
 [Install]
 WantedBy=multi-user.target
+EOF
