@@ -1,29 +1,30 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
+# Virtual Embedded Lab - APT-based Installer
+# For: Debian, Raspberry Pi OS, Ubuntu, Linux Mint, Pop!_OS, etc.
+
 set -e
 
-# ===============================
-# APT Installer (Ubuntu + Pi OS)
-# ===============================
-
-REAL_USER="${SUDO_USER:-$USER}"
-HOME_DIR="$(eval echo "~$REAL_USER")"
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-cd "$PROJECT_DIR"
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
 echo "========================================"
-echo "Installing Virtual Embedded Lab"
-echo "User: $REAL_USER"
+echo "Installing for APT-based Linux"
 echo "========================================"
 echo ""
 
-echo "Step 1: Updating system..."
-sudo apt update
-sudo apt upgrade -y
+# Get the project directory (parent of install/)
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_DIR"
 
-echo "Step 2: Installing system packages..."
+echo -e "${YELLOW}Step 1: Updating system packages...${NC}"
+sudo apt update && sudo apt upgrade -y
+
+echo -e "${YELLOW}Step 2: Installing system dependencies...${NC}"
 sudo apt install -y \
-    python3 \
     python3-pip \
     python3-venv \
     python3-dev \
@@ -36,46 +37,64 @@ sudo apt install -y \
     ffmpeg \
     ustreamer
 
-echo "Step 3: Creating Python virtual environment..."
-if [ -d "venv" ]; then
-    echo "Removing old venv (safety fix)"
-    rm -rf venv
+echo -e "${YELLOW}Step 3: Setting up Python virtual environment...${NC}"
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
 fi
+source venv/bin/activate
 
-python3 -m venv venv
+echo -e "${YELLOW}Step 4: Installing Python dependencies...${NC}"
+python3 -m ensurepip --upgrade || python3 -m pip install --upgrade pip
+pip install --upgrade pip
+pip install -r requirements.txt
 
-VENV_PY="$PROJECT_DIR/venv/bin/python3"
+echo -e "${YELLOW}Step 5: Creating required directories...${NC}"
+mkdir -p uploads
+mkdir -p default_fw
+mkdir -p static/sop
 
-echo "Step 4: Installing Python dependencies..."
-"$VENV_PY" -m pip install --upgrade pip
-"$VENV_PY" -m pip install -r requirements.txt
+echo -e "${YELLOW}Step 6: Setting up systemd services...${NC}"
 
-echo "Step 5: Creating directories..."
-mkdir -p uploads default_fw static/sop
-
-echo "Step 6: Installing systemd services..."
+# Copy service files from services folder
 if [ -d "services" ]; then
-    sudo cp services/*.service /etc/systemd/system/
-    sudo chmod 644 /etc/systemd/system/*.service
+    for service_file in services/*.service; do
+        if [ -f "$service_file" ]; then
+            service_name=$(basename "$service_file")
+            echo "  Installing $service_name..."
+            sudo cp "$service_file" /etc/systemd/system/
+            sudo chmod 644 "/etc/systemd/system/$service_name"
+        fi
+    done
 else
-    echo "❌ services directory missing"
+    echo -e "${RED}Error: services folder not found!${NC}"
     exit 1
 fi
 
+# Reload systemd and enable all services
 sudo systemctl daemon-reload
 sudo systemctl enable vlabiisc.service audio_stream.service mjpg-streamer.service
 
-echo "Step 7: Setting permissions..."
-sudo usermod -aG dialout "$REAL_USER"
+echo -e "${YELLOW}Step 7: Configuring permissions...${NC}"
+sudo usermod -a -G dialout $USER
 
-echo "Step 8: ALSA compatibility fix..."
+echo -e "${YELLOW}Step 8: Fixing ALSA config for venv...${NC}"
+# Create ALSA config directory for virtual environment
 sudo mkdir -p /tmp/vendor/share/alsa
 sudo cp -r /usr/share/alsa/* /tmp/vendor/share/alsa/
 
 echo ""
 echo "========================================"
-echo "✅ INSTALLATION SUCCESSFUL"
+echo "✅ APT installation completed!"
 echo "========================================"
 echo ""
-echo "Reboot required:"
+echo "To start the server:"
+echo "  sudo systemctl start vlabiisc"
+echo ""
+echo "To check status:"
+echo "  sudo systemctl status vlabiisc"
+echo ""
+echo "To view logs:"
+echo "  sudo journalctl -u vlabiisc -f"
+echo ""
+echo -e "${YELLOW}Note: Please reboot for serial port permissions to take effect${NC}"
 echo "  sudo reboot"
