@@ -17,13 +17,17 @@ except Exception as e:
 from werkzeug.utils import secure_filename
 
 # ---------- CONFIG ----------
-BASE_DIR = os.path.expanduser('/home/pi/virtual_lab')  # base path as you specified
-UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
-DEFAULT_FW_DIR = os.path.join(BASE_DIR, 'default_fw')  # contains esp32_default.bin etc
-SOP_DIR = os.path.join(BASE_DIR, 'static')      # contains exp.pdf
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(DEFAULT_FW_DIR, exist_ok=True)
-os.makedirs(SOP_DIR, exist_ok=True)
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent  # ~/virtual_lab
+UPLOAD_DIR = BASE_DIR / 'uploads'
+DEFAULT_FW_DIR = BASE_DIR / 'default_fw'
+SOP_DIR = BASE_DIR / 'static'
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+DEFAULT_FW_DIR.mkdir(parents=True, exist_ok=True)
+SOP_DIR.mkdir(parents=True, exist_ok=True)
+
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = 'devkey'
