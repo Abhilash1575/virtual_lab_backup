@@ -46,19 +46,11 @@ fi
 # Activate venv
 source venv/bin/activate
 
-echo -e "${YELLOW}Step 4: Installing Python dependencies...${NC}"
-# Detect if Ubuntu (PEP 668) or RPi OS
-OS_NAME=$(lsb_release -si)
-if [[ "$OS_NAME" == "Ubuntu" ]]; then
-    echo "Detected Ubuntu: Using virtual environment for pip (PEP 668 safe)"
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-else
-    echo "Detected non-Ubuntu OS: Using system Python (RPi OS compatible)"
-    python3 -m ensurepip --upgrade || python3 -m pip install --upgrade pip
-    pip install --upgrade pip
-    pip install -r requirements.txt
-fi
+echo -e "${YELLOW}Step 4: Installing Python dependencies in virtual environment...${NC}"
+# Upgrade pip inside venv
+python -m pip install --upgrade pip
+# Install requirements inside venv
+python -m pip install -r requirements.txt
 
 echo -e "${YELLOW}Step 5: Creating required directories...${NC}"
 mkdir -p uploads
