@@ -146,6 +146,7 @@ def flash():
         'black_pill': f"openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c \"program {dest} 0x08000000 verify reset exit\"",
         'msp430': f"mspdebug rf2500 'prog {dest}'",
         'tiva': f"openocd -f board/ti_ek-tm4c123gxl.cfg -c \"program {dest} verify reset exit\"",
+        'tms320f28377s': f"python3 dsp/flash_tool.py {dest}",
         'generic': f"echo 'No flashing command configured for {board}. Uploaded to {dest}'"
     }
 
@@ -190,6 +191,7 @@ def factory_reset():
         'black_pill': 'stm32_default.bin',
         'msp430': 'generic_default.bin',
         'tiva': 'tiva_default.out',
+        'tms320f28377s': 'tms320f28377s_default.out',
         'generic': 'generic_default.bin'
     }
 
@@ -213,6 +215,7 @@ def factory_reset():
         'black_pill': f"openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c \"program {fpath} 0x08000000 verify reset exit\"",
         'msp430': f"mspdebug rf2500 'prog {fpath}'",
         'tiva': f"openocd -f board/ti_ek-tm4c123gxl.cfg -c \"program {fpath} verify reset exit\"",
+        'tms320f28377s': f"python3 dsp/flash_tool.py {fpath}",
         'generic': f"echo 'No flashing command configured for {board}. Default firmware at {fpath}'"
     }
     cmd = commands.get(board, commands['generic'])

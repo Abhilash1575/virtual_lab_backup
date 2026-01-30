@@ -37,7 +37,18 @@ sudo apt install -y \
     alsa-utils \
     libportaudio2 \
     ffmpeg \
-    ustreamer
+    ustreamer \
+    wget
+
+echo -e "${YELLOW}Step 2.5: Installing UniFlash for TI TMS320F28377S...${NC}"
+# Note: UniFlash requires manual installation from TI website as it's not directly downloadable on ARM systems
+echo -e "${YELLOW}⚠️  UniFlash is only available for x86-64 Linux systems${NC}"
+echo -e "${YELLOW}Please download and install UniFlash on an x86-64 system from: https://www.ti.com/tool/download/UNIFLASH${NC}"
+echo -e "${YELLOW}For ARM systems (like Raspberry Pi), use cross-platform development:${NC}"
+echo -e "${YELLOW}  1. Develop code on x86-64 machine${NC}"
+echo -e "${YELLOW}  2. Build .out files with CCS${NC}"
+echo -e "${YELLOW}  3. Flash using UniFlash on x86-64${NC}"
+echo -e "${YELLOW}  4. Deploy to ARM system for runtime${NC}"
 
 echo -e "${YELLOW}Step 3: Setting up Python virtual environment...${NC}"
 if [ ! -d "venv" ]; then
