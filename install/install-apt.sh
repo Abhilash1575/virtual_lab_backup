@@ -38,7 +38,15 @@ sudo apt install -y \
     libportaudio2 \
     ffmpeg \
     ustreamer \
-    wget
+    wget \
+    i2c-tools \
+    python3-smbus \
+    python3-libgpiod \
+    raspi-config \
+    sqlite3 \
+    nginx \
+    certbot \
+    python3-certbot-nginx
 
 echo -e "${YELLOW}Step 2.5: Installing UniFlash for TI TMS320F28377S...${NC}"
 # Note: UniFlash requires manual installation from TI website as it's not directly downloadable on ARM systems

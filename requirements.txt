@@ -1,6 +1,10 @@
 # Flask and Web Framework
 Flask>=2.3.0
 Flask-SocketIO>=5.3.0
+Flask-SQLAlchemy>=3.0.0
+Flask-Login>=0.6.0
+Flask-WTF>=1.1.0
+Flask-Mail>=0.9.0
 eventlet>=0.33.0
 
 # WebRTC Audio Server
@@ -13,6 +17,13 @@ pyserial>=3.5.0
 
 # File Uploads
 Werkzeug>=2.3.0
+
+# Authentication and Security
+bcrypt>=4.0.0
+python-dotenv>=1.0.0
+
+# GPIO Control
+gpiozero>=2.0.0
 
 # Additional utilities
 python-socketio>=5.8.0
